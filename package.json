@@ -1,5 +1,5 @@
 {
-    "name": "nexus",
+    "name": "@prism-dev/nexus",
     "version": "1.0.0",
     "description": "A lightweight, event-driven, layer-stack framework for building modular Node.js applications with TypeScript.",
     "main": "dist/index.js",
