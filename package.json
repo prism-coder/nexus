@@ -1,0 +1,43 @@
+{
+    "name": "nexus",
+    "version": "1.0.0",
+    "description": "A lightweight, event-driven, layer-stack framework for building modular Node.js applications with TypeScript.",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "npx tsc",
+        "clean": "rm -rf dist coverage",
+        "test": "jest --verbose",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage"
+    },
+    "files": [
+        "dist"
+    ],
+    "keywords": [
+        "nexus",
+        "framework",
+        "nodejs",
+        "typescript",
+        "event-driven",
+        "layer-stack"
+    ],
+    "homepage": "https://github.com/prism-coder/nexus#readme",
+    "bugs": {
+        "url": "https://github.com/prism-coder/nexus/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/prism-coder/nexus.git"
+    },
+    "author": "Prism",
+    "license": "MIT",
+    "type": "commonjs",
+    "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^24.10.0",
+        "jest": "^30.2.0",
+        "ts-jest": "^29.4.5",
+        "typescript": "^5.9.3"
+    }
+}
