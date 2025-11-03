@@ -49,28 +49,30 @@ Here is what a minimal `app-api` application looks like using `Nexus`:
 `main.ts`
 
 ```typescript
-import { Application, Layer, Event, Log, ServiceLocator } from "nexus";
+import { Application, Event, Layer, Log, ServiceLocator } from "@prism-dev/nexus";
 
-// 1. Define a simple Layer
+// 1. Define a simple Layer.
 class MyLayer extends Layer {
     OnAttach(): void {
         Log.Info("MyLayer Attached!");
-        // You can get services anywhere
+        // You can get services anywhere.
         // const config = ServiceLocator.Get(ConfigService);
     }
-    OnDetach(): void { }
-    OnUpdate(ts: number): void { }
+
+    OnDetach(): void {}
+    OnUpdate(ts: number): void {}
+
     OnEvent(event: Event): void {
         Log.Info(`MyLayer saw event: ${event.Name}`);
     }
 }
 
-// 2. Create the Application
+// 2. Create the Application.
 (async () => {
     const app: Application = Application.Create({ Name: "MyFirstApp" });
 
     try {
-        // 3. Register & Initialize Services
+        // 3. Register & Initialize Services.
         // app.RegisterService(ConfigService, new ConfigService());
         await app.InitializeServices();
     } catch (error) {
@@ -78,13 +80,13 @@ class MyLayer extends Layer {
         process.exit(1);
     }
     
-    // 4. Push Layers
+    // 4. Push Layers.
     app.PushLayer(new MyLayer());
 
-    // 5. Run the Application
+    // 5. Run the Application.
     app.Run();
 
-    // 6. Handle shutdown
+    // 6. Handle shutdown.
     process.on('SIGINT', () => app.Close());
 })();
 ```
