@@ -11,7 +11,7 @@ import { Event } from "./Event";
  * @class Layer
  * @example
  * ```typescript
- * import { Layer, Event, EventHandler, Log, ServiceLocator } from "nexus";
+ * import { Layer, Event, EventHandler, Log, ServiceLocator } from "@prism-dev/nexus";
  * import { MyConfigService } from "../Services/MyConfigService";
  *
  * class MyLayer extends Layer {

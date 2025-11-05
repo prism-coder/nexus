@@ -3,7 +3,7 @@ import { Layer } from "./Layer";
 import { Log } from "./Log";
 
 /**
- * Manages the stack of layers for the application.
+ * Manages the stack of layers for the `Application`.
  * This class handles the attachment, detachment and propagation
  * of updates and events through the layers.
  * 
@@ -35,9 +35,9 @@ export class LayerStack {
     private layerInsertIndex: number = 0;
 
     /**
-     * Destroys the LayerStack and detaches all layers.
+     * Destroys the `LayerStack` and detaches all layers.
      *
-     * @returns {boolean} True if shutdown was successful, false otherwise.
+     * @returns {boolean} `true` if shutdown was successful, `false` otherwise.
      * @memberof LayerStack
      */
     public Shutdown(): boolean {
@@ -67,7 +67,7 @@ export class LayerStack {
      * Pushes a regular `Layer` onto the stack.
      * Regular layers are inserted before overlays.
      *
-     * @param {Layer} layer The layer to push.
+     * @param {Layer} layer The `Layer` to push.
      * @memberof LayerStack
      */
     public PushLayer(layer: Layer): void {
@@ -99,7 +99,7 @@ export class LayerStack {
     /**
      * Pops a regular `Layer` from the stack.
      *
-     * @param {Layer} layer The layer to pop.
+     * @param {Layer} layer The `Layer` to pop.
      * @memberof LayerStack
      */
     public PopLayer(layer: Layer): void {
@@ -148,7 +148,7 @@ export class LayerStack {
     /**
      * Propagates an update tick to all layers (bottom-to-top).
      *
-     * @param {number} ts Timestep
+     * @param {number} ts The `Application`'s timestep.
      * @memberof LayerStack
      */
     public OnUpdate(ts: number): void {
@@ -158,10 +158,10 @@ export class LayerStack {
     }
 
     /**
-     * Propagates an event to all layers (top-to-bottom).
-     * Propagation stops if the event is consumed.
+     * Propagates an `Event` to all layers (top-to-bottom).
+     * Propagation stops if the `Event` is consumed.
      *
-     * @param {Event} event The event to propagate.
+     * @param {Event} event The `Event` to propagate.
      * @memberof LayerStack
      */
     public OnEvent(event: Event): void {
