@@ -17,7 +17,7 @@ type EventEmitFunction = (event: Event) => void;
  * @example
  * ```typescript
  * // In a Service or Layer...
- * import { EventBus } from "nexus";
+ * import { EventBus } from "@prism-dev/nexus";
  * import { UserRegisteredEvent } from "../Events/UserRegisteredEvent";
  *
  * // ...
@@ -54,18 +54,21 @@ export class EventBus {
     }
 
     /**
-     * Emits an event to the application's `LayerStack`.
+     * Emits an `Event` to the application's `LayerStack`.
      *
      * @static
-     * @param {Event} event The event to emit.
+     * @param {Event} event The `Event` to emit.
      * @returns {void}
+     * @throws {Error} If `EventBus` hasn't been initialized.
      * @memberof EventBus
      */
     public static Emit(event: Event): void {
         if (!this.emitFunction) {
-            Log.Error("EventBus::Emit - EventBus has not been initialized! Did you forget to call Application.Create()?");
-
-            return;
+            // This is a developer error, so we throw.
+            throw new Error(
+                "EventBus::Emit - EventBus has not been initialized! " +
+                "Did you forget to call 'EventBus.Initialize()'?"
+            );
         }
 
         this.emitFunction(event);

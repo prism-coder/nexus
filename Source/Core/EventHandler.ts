@@ -1,4 +1,4 @@
-import { Event, EventType } from "./Event";
+import { Event } from "./Event";
 
 /**
  * A helper class to handle events to dedicated handler functions
@@ -9,24 +9,36 @@ import { Event, EventType } from "./Event";
  * @class EventHandler
  * @example
  * ```typescript
+ * // Define your Event types
+ * export const EventType = {
+ *     User: {
+ *         Registered: "User:Registered",
+ *         LoggedIn: "User:LoggedIn",
+ *     },
+ *     Data: {
+ *         Received: "Data:Received",
+ *     }
+ * }
+ * 
  * // In your Layer's OnEvent method:
  * OnEvent(event: Event): void {
  *     const handler = new EventHandler(event);
  *
  *     // The handler will only call OnUserRegistered if the event
- *     // type matches EventType.UserRegistered.
+ *     // type matches EventType.User.Registered.
  *     handler.Handle<UserRegisteredEvent>(
- *         EventType.UserRegistered,
+ *         EventType.User.Registered,
  *         this.OnUserRegistered.bind(this)
  *     );
  *
+ *     // Similarly for other event types:
  *     handler.Handle<DataReceivedEvent>(
- *         EventType.DataReceived,
+ *         EventType.Data.Received,
  *         this.OnDataReceived.bind(this)
  *     );
  * }
  *
- * // The handler function:
+ * // The handler functions:
  * private OnUserRegistered(event: UserRegisteredEvent): boolean {
  *     Log.Info(`User registered: ${event.Payload.username}`);
  *     // Return true to consume the event
@@ -60,18 +72,18 @@ export class EventHandler {
     }
 
     /**
-     * Dispatches the Event to a specific handler function if the Event's type matches.
+     * Dispatches the `Event` to a specific handler function if the Event's type matches.
      * If the handler function returns `true`, the event will be marked as consumed.
      *
      * @template T A class that extends `Event`.
-     * @param {EventType} type The `EventType` to match against.
+     * @param {string} type The `Event` type to match against.
      * @param {(event: T) => boolean} handler The function to call if the type matches.
      * Should return `true` to consume the event.
      * @returns {void}
      * @memberof EventHandler
      */
     public Handle<T extends Event>(
-        type: EventType,
+        type: string,
         handler: (event: T) => boolean
     ): void {
         // If the Event is already consumed or types don't match, do nothing.

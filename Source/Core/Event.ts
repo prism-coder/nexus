@@ -6,42 +6,18 @@
  * @enum {number}
  * @example
  * ```typescript
- * if (event.IsInCategory(EventCategory.Mouse | EventCategory.Keyboard)) {
- *     // Is any kind of input event
+ * if (event.IsInCategory(EventCategory.User | EventCategory.Database)) {
+ *     // Is a user or database Event
  * }
  * ```
  */
 export enum EventCategory {
-    None        = 0,      // 0
-    Application = 1 << 0, // 1
-    Input       = 1 << 1, // 2
-    Keyboard    = 1 << 2, // 4
-    Mouse       = 1 << 3, // 8
-    MouseButton = 1 << 4, // 16
-    Data        = 1 << 5, // 32
-    Test        = 1 << 6, // 64
-}
-
-/**
- * An enumeration of all specific event types.
- *
- * @export
- * @enum {number}
- */
-export enum EventType {
-    None,
-    // Application events
-    WindowClose, WindowResize,
-    UserRegistered, UserLogin,
-    // Key events
-    KeyPressed, KeyReleased, KeyTyped,
-    // Mouse events
-    MouseMoved, MouseScrolled,
-    MouseButtonPressed, MouseButtonReleased,
-    // Data/Service events
-    DataReceived, DataError,
-    // Test event
-    Test,
+    None        = 0,      // 0  - No category
+    Application = 1 << 0, // 1  - App lifecycle events
+    Network     = 1 << 1, // 2  - API events, WebSocket, etc.
+    Database    = 1 << 2, // 4  - Database I/O Events
+    User        = 1 << 3, // 8  - User-specific events (generic)
+    Custom      = 1 << 4, // 16 - For anything else that the app defines
 }
 
 /**
@@ -55,16 +31,25 @@ export enum EventType {
  * @class Event
  * @example
  * ```typescript
- * // Define a custom event
+ * // Define your application's Event types as string constants.
+ * export const EventType = {
+ *     User: {
+ *         Registered: "User:Registered",
+ *         LoggedIn: "User:LoggedIn",
+ *     }
+ * }
+ * 
+ * // Define a payload interface.
  * export interface UserRegisteredPayload {
- *     userId: string;
+ *     userId: number;
  *     username: string;
  * }
  *
+ * // Create your custom event class.
  * export class UserRegisteredEvent extends Event {
  *     public readonly Name: string = "UserRegistered";
- *     public readonly Category: EventCategory = EventCategory.Application;
- *     public readonly Type: EventType = EventType.UserRegistered;
+ *     public readonly Category: EventCategory = EventCategory.User;
+ *     public readonly Type: string = EventType.User.Registered;
  *     public readonly Payload: UserRegisteredPayload;
  *
  *     constructor(payload: UserRegisteredPayload) {
@@ -76,7 +61,7 @@ export enum EventType {
  */
 export abstract class Event {
     /**
-     * The unique name of the Event.
+     * The unique name of the `Event`.
      *
      * Used for logging and debugging.
      *
@@ -87,7 +72,7 @@ export abstract class Event {
     public abstract readonly Name: string;
 
     /**
-     * The Category of the Event.
+     * The Category of the `Event`.
      *
      * @abstract
      * @type {EventCategory}
@@ -96,16 +81,16 @@ export abstract class Event {
     public abstract readonly Category: EventCategory;
 
     /**
-     * The specific type of the Event.
+     * The specific type of the `Event`.
      *
      * @abstract
-     * @type {EventType}
+     * @type {string}
      * @memberof Event
      */
-    public abstract readonly Type: EventType;
+    public abstract readonly Type: string;
 
     /**
-     * Flag indicating if the event has been consumed.
+     * Flag indicating if the `Event` has been consumed.
      *
      * @protected
      * @type {boolean}
@@ -114,9 +99,9 @@ export abstract class Event {
     protected consumed: boolean = false;
 
     /**
-     * Checks if the Event has been consumed.
+     * Checks if the `Event` has been consumed.
      *
-     * @returns {boolean} True if the Event is consumed, false otherwise.
+     * @returns {boolean} `true` if the `Event` is consumed, `false` otherwise.
      * @memberof Event
      */
     public Consumed(): boolean {
@@ -124,7 +109,7 @@ export abstract class Event {
     }
 
     /**
-     * Marks the event as consumed.
+     * Marks the `Event` as consumed.
      * Once consumed, subsequent layers in the stack will not process it.
      *
      * @memberof Event
@@ -134,15 +119,15 @@ export abstract class Event {
     }
 
     /**
-     * Checks if the event belongs to a specific category.
+     * Checks if the `Event` belongs to a specific category.
      *
      * @param {EventCategory} category The category to check against.
-     * @returns {boolean} True if the event is in the specified category.
+     * @returns {boolean} `true` if the `Event` is in the specified category, `false` otherwise.
      * @memberof Event
      * @example
      * ```typescript
-     * if (event.IsInCategory(EventCategory.Input)) {
-     *     // It's a keyboard or mouse event
+     * if (event.IsInCategory(EventCategory.Network)) {
+     *     // It's a network event
      * }
      * ```
      */
