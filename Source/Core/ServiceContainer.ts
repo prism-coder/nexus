@@ -2,11 +2,12 @@ import { Service } from "./Service";
 import { Log } from "./Log";
 
 /**
- * A type alias for a Service's constructor.
+ * A type alias for a `Service`'s constructor.
+ * 
  * This is used as the key for registering and retrieving services.
  * 
  * @export
- * @template T The Service type.
+ * @template T The `Service` type.
  * @example
  * ```typescript
  * ServiceContainer.Get(DatabaseService)
@@ -26,7 +27,7 @@ export type ServiceIdentifier<T extends Service> = new (...args: any[]) => T;
  */
 export class ServiceContainer {
     /**
-     * The Map holding all registered service instances.
+     * The Map holding all registered `Service` instances.
      * The key is the class and the value is the instance.
      *
      * @private
@@ -36,7 +37,7 @@ export class ServiceContainer {
     private services: Map<ServiceIdentifier<Service>, Service> = new Map();
 
     /**
-     * Registers a service instance against its class identifier.
+     * Registers a `Service` instance against its class identifier.
      *
      * @template T
      * @param {ServiceIdentifier<T>} identifier The class.
@@ -57,12 +58,12 @@ export class ServiceContainer {
     }
 
     /**
-     * Retrieves a service instance using its class identifier.
+     * Retrieves a `Service` instance using its class identifier.
      *
      * @template T
      * @param {ServiceIdentifier<T>} identifier The class to retrieve.
-     * @returns {T} The service instance.
-     * @throws {Error} If the service is not registered.
+     * @returns {T} The `Service` instance.
+     * @throws {Error} If the `Service` is not registered.
      * @memberof ServiceContainer
      */
     public Get<T extends Service>(identifier: ServiceIdentifier<T>): T {
@@ -71,7 +72,8 @@ export class ServiceContainer {
         if (!service) {
             // This is a developer error, so we throw.
             throw new Error(
-                `ServiceContainer::Get - Service not found: ${identifier.name}. Did you forget to app.RegisterService()?`
+                `ServiceContainer::Get - Service not found: ${identifier.name}. ` +
+                `Did you forget to call 'app.RegisterService()'?`
             );
         }
 
