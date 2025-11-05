@@ -24,43 +24,24 @@ export interface ApplicationSpecification {
 }
 
 /**
- * The main Application class.
- * It follows a Singleton pattern and is responsible for managing the
- * service container, layer stack, and the main application loop.
+ * The main `Application` class.
+ * 
+ * It is responsible for managing the `ServiceContainer`,
+ * `LayerStack`, and the main application loop.
  *
  * @export
  * @class Application
  * @example
  * ```typescript
- * import { Application, ApplicationSpecification, Log, Service, Layer } from "nexus";
+ * import { Application, ApplicationSpecification, Log, Service, Layer } from "@prism-dev/nexus";
  *
  * // (Define custom Services and Layers...)
- *
- * class MyService extends Service {
- *     async Initialize(): Promise<void> {
- *         Log.Info("Service initialized");
- *     }
- * 
- *     async Shutdown(): Promise<void> {
- *        Log.Info("Service shut down");
- *     }
- * }
- *
- * class MyLayer extends Layer {
- *     OnAttach(): void {
- *         Log.Info("MyLayer attached");
- *     }
- * 
- *     OnDetach(): void {}
- *     OnUpdate(ts: number): void {}
- *     OnEvent(event: Event): void {}
- * }
  *
  * // Main application entry point.
  * (async () => {
  *     // 1. Create the application.
  *     const spec: ApplicationSpecification = { Name: "MyApp" };
- *     const app: Application = Application.Create(spec);
+ *     const app: Application = new Application(spec);
  *
  *     try {
  *         // 2. Register services.
@@ -68,7 +49,6 @@ export interface ApplicationSpecification {
  *     
  *         // 3. Initialize services (async).
  *         await app.InitializeServices();
- *     
  *     } catch (error: any) {
  *         Log.Fatal(`Failed to initialize services!: ${error.message}`);
  *         process.exit(1);
@@ -87,16 +67,16 @@ export interface ApplicationSpecification {
  */
 export class Application {
     /**
-     * The Layer Stack for the Application.
+     * The `LayerStack` for the `Application`.
      *
      * @private
      * @type {LayerStack}
      * @memberof Application
      */
-    private layerStack: LayerStack;
+    private layerStack: LayerStack = new LayerStack();
 
     /**
-     * The Application Specification.
+     * The `ApplicationSpecification`.
      *
      * @private
      * @type {ApplicationSpecification}
@@ -105,7 +85,7 @@ export class Application {
     private specification: ApplicationSpecification;
 
     /**
-     * Variable that holds the running state of the Application.
+     * Variable that holds the running state of the `Application`.
      *
      * @private
      * @type {boolean}
@@ -114,71 +94,37 @@ export class Application {
     private running: boolean = true;
 
     /**
-     * Variable that holds the last frame time of the Application.
+     * Variable that holds the last tick time of the `Application`.
      *
      * @private
      * @type {number}
      * @memberof Application
      */
-    private lastFrameTime: number = 0;
+    private lastTickTime: number = 0;
 
     /**
-     * The Application's internal Service Container.
+     * The `Application`'s internal `ServiceContainer`.
      *
      * @private
      * @type {ServiceContainer}
      * @memberof Application
      */
-    private serviceContainer: ServiceContainer;
+    private serviceContainer: ServiceContainer = new ServiceContainer();
 
     /**
-     * The Singleton instance of the Application Class.
+     * Creates an instance of `Application`.
      *
-     * @private
-     * @static
-     * @type {Application}
+     * @param {ApplicationSpecification} specification The `ApplicationSpecification`.
      * @memberof Application
      */
-    private static instance: Application;
-
-    /**
-     * Creates an instance of Application.
-     * The constructor is private to enforce the Singleton pattern.
-     *
-     * @param {ApplicationSpecification} specification The Application Specification.
-     * @memberof Application
-     */
-    private constructor(specification: ApplicationSpecification) {
+    constructor(specification: ApplicationSpecification) {
         this.specification = specification;
-        this.layerStack = new LayerStack();
-        this.serviceContainer = new ServiceContainer();
 
         this.Initialize();
     }
 
     /**
-     * Creates or retrieves the Application Singleton instance.
-     * This is the entry point for creating the application.
-     *
-     * @static
-     * @param {ApplicationSpecification} specification The Application Specification.
-     * @returns {Application} The singleton Application instance.
-     * @memberof Application
-     */
-    public static Create(specification: ApplicationSpecification): Application {
-        if (!this.instance) {
-            this.instance = new Application(specification);
-        } else {
-            // Update specification if instance already exists.
-            this.instance.specification = specification;
-            Log.SetAppName(specification.Name);
-        }
-
-        return this.instance;
-    }
-
-    /**
-     * Starts the Application's non-blocking main loop.
+     * Starts the application's non-blocking main loop.
      * The application will begin processing `OnUpdate` ticks for all layers.
      *
      * @memberof Application
@@ -189,8 +135,8 @@ export class Application {
         // Set the running flag.
         this.running = true;
 
-        // Initialize lastFrameTime *before* starting the loop.
-        this.lastFrameTime = Date.now();
+        // Initialize lastTickTime *before* starting the loop.
+        this.lastTickTime = Date.now();
 
         // Start the first tick.
         // The Tick() method will schedule itself to run again,
@@ -217,8 +163,8 @@ export class Application {
 
         // Calculate timstep.
         const time: number = Date.now();
-        const timestep: number = time - this.lastFrameTime;
-        this.lastFrameTime = time;
+        const timestep: number = time - this.lastTickTime;
+        this.lastTickTime = time;
 
         // Propagate update to the LayerStack.
         this.layerStack.OnUpdate(timestep);
@@ -228,13 +174,14 @@ export class Application {
     }
 
     /**
-     * Emits an event to the Layer Stack.
-     * The event will propagate down the stack (from top-most to bottom-most layer)
+     * Emits an `Event` to the `LayerStack`.
+     * 
+     * The `Event` will propagate down the stack (from top-most to bottom-most layer)
      * until it is consumed.
      *
      * This is called internally by the `EventBus`.
      *
-     * @param {Event} event The event to emit.
+     * @param {Event} event The `Event` to emit.
      * @memberof Application
      */
     public EmitEvent(event: Event): void {
@@ -243,7 +190,7 @@ export class Application {
     }
 
     /**
-     * Pushes a regular Layer to the `LayerStack`.
+     * Pushes a regular `Layer` to the `LayerStack`.
      *
      * Regular layers are processed in the order they are pushed (FIFO).
      *
@@ -268,12 +215,13 @@ export class Application {
     }
 
     /**
-     * Registers a service instance with the Application's container.
+     * Registers a `Service` instance with the `Application`'s container.
+     * 
      * This must be called *before* `InitializeServices()`.
      *
      * @template T
-     * @param {ServiceIdentifier<T>} identifier The class.
-     * @param {T} instance The instance.
+     * @param {ServiceIdentifier<T>} identifier The `Service` class.
+     * @param {T} instance The `Service` instance.
      * @memberof Application
      * @example
      * ```typescript
@@ -305,7 +253,7 @@ export class Application {
     }
 
     /**
-     * Stops the Application from running.
+     * Stops the `Application` from running.
      *
      * The loop will stop on the *next* tick and perform a graceful shutdown.
      *
@@ -320,17 +268,6 @@ export class Application {
     }
 
     /**
-     * Returns the Application Singleton instance.
-     *
-     * @static
-     * @returns {Application} The singleton instance.
-     * @memberof Application
-     */
-    public static Get(): Application {
-        return this.instance;
-    }
-
-    /**
      * Returns the `ApplicationSpecification`.
      *
      * @returns {ApplicationSpecification}
@@ -341,7 +278,7 @@ export class Application {
     }
 
     /**
-     * Returns the Application's internal `ServiceContainer`.
+     * Returns the `Application`'s internal `ServiceContainer`.
      *
      * @returns {ServiceContainer}
      * @memberof Application
@@ -351,7 +288,7 @@ export class Application {
     }
 
     /**
-     * Initializes the Application's core components (`Log`, `EventBus`, `ServiceLocator`...).
+     * Initializes the `Application`'s core components (`Log`, `EventBus`, `ServiceLocator`...).
      *
      * @private
      * @memberof Application
@@ -377,7 +314,7 @@ export class Application {
     }
 
     /**
-     * Shuts down the Application, services, and layers gracefully.
+     * Shuts down the `Application`, services, and layers gracefully.
      *
      * @private
      * @memberof Application
