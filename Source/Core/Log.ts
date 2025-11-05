@@ -1,13 +1,13 @@
 /**
- * Specification for initializing the Log.
+ * Specification for initializing the `Log`.
  *
  * @export
  * @interface LogSpecification
  */
 export interface LogSpecification {
     /**
-     * The name of the Application.
-     * Used as a prefix in Log messages.
+     * The name of the `Application`.
+     * Used as a prefix in log messages.
      *
      * @type {string}
      * @memberof LogSpecification
@@ -16,7 +16,7 @@ export interface LogSpecification {
 }
 
 /**
- * Log Levels, from most verbose (Trace) to most critical (Fatal).
+ * Log Levels, from most verbose (`Trace`) to most critical (`Fatal`).
  *
  * @export
  * @enum {number}
@@ -31,7 +31,7 @@ export enum LogLevel {
 }
 
 /**
- * The static Log Class.
+ * The static `Log` class.
  * 
  * Responsible for logging messages to the Console.
  *
@@ -39,7 +39,7 @@ export enum LogLevel {
  * @class Log
  * @example
  * ```typescript
- * import { Log, LogLevel } from "nexus";
+ * import { Log, LogLevel } from "@prism-dev/nexus";
  *
  * // Set the minimum log level (optional)
  * Log.SetLevel(LogLevel.Debug);
@@ -55,7 +55,7 @@ export enum LogLevel {
  */
 export class Log {
     /**
-     * The Log Specification.
+     * The `LogSpecification`.
      *
      * @private
      * @static
@@ -67,7 +67,7 @@ export class Log {
     };
 
     /**
-     * The Current Log level.
+     * The current Log level.
      *
      * @private
      * @static
@@ -77,7 +77,7 @@ export class Log {
     private static currentLevel: LogLevel = LogLevel.Trace;
 
     /**
-     * Initializes the Log.
+     * Initializes the `Log`.
      *
      * This method should *only* be called by the `Application` upon startup.
      *
@@ -107,7 +107,7 @@ export class Log {
     }
 
     /**
-     * Sets the new Log (Application) name.
+     * Sets the new Log (`Application`) name.
      *
      * @static
      * @param {string} name The new Log name.
@@ -118,7 +118,7 @@ export class Log {
     }
 
     /**
-     * Logs a message with Trace level.
+     * Logs a message with `Trace` level.
      *
      * @static
      * @param {string} message The Log message.
@@ -129,7 +129,7 @@ export class Log {
     }
 
     /**
-     * Logs a message with Debug level.
+     * Logs a message with `Debug` level.
      *
      * @static
      * @param {string} message The Log message.
@@ -140,7 +140,7 @@ export class Log {
     }
 
     /**
-     * Logs a message with Info level.
+     * Logs a message with `Info` level.
      *
      * @static
      * @param {string} message The Log message.
@@ -151,7 +151,7 @@ export class Log {
     }
 
     /**
-     * Logs a message with Warning level.
+     * Logs a message with `Warning` level.
      *
      * @static
      * @param {string} message The Log message.
@@ -162,7 +162,7 @@ export class Log {
     }
 
     /**
-     * Logs a message with Log level.
+     * Logs a message with `Error` level.
      *
      * @static
      * @param {string} message The Log message.
@@ -173,7 +173,7 @@ export class Log {
     }
 
     /**
-     * Logs a message with Fatal level.
+     * Logs a message with `Fatal` level.
      *
      * @static
      * @param {string} message The Log message.
@@ -184,10 +184,10 @@ export class Log {
     }
 
     /**
-     * Returns the Log Specification.
+     * Returns the `LogSpecification`.
      *
      * @static
-     * @returns {LogSpecification} The Log Specification.
+     * @returns {LogSpecification} The `LogSpecification`.
      * @memberof Log
      */
     public static GetSpecification(): LogSpecification {
@@ -195,11 +195,11 @@ export class Log {
     }
 
     /**
-     * Writes a Log message based on a Log level.
+     * Writes a Log message based on a `LogLevel`.
      *
      * @private
      * @static
-     * @param {LogLevel} level The Log level.
+     * @param {LogLevel} level The `LogLevel`.
      * @param {string} message The Log message.
      * @returns {void}
      * @memberof Log
@@ -226,12 +226,12 @@ export class Log {
     }
 
     /**
-     * Converts the Log level to a string.
+     * Converts the `LogLevel` to a string.
      *
      * @private
      * @static
-     * @param {LogLevel} level The Log level to convert.
-     * @return {*}  {string}
+     * @param {LogLevel} level The `LogLevel` to convert.
+     * @returns {string} The string representation of the `LogLevel`.
      * @memberof Log
      */
     private static LevelToString(level: LogLevel): string {
