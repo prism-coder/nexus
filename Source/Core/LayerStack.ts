@@ -37,30 +37,18 @@ export class LayerStack {
     /**
      * Destroys the `LayerStack` and detaches all layers.
      *
-     * @returns {boolean} `true` if shutdown was successful, `false` otherwise.
+     * @returns {void}
      * @memberof LayerStack
      */
-    public Shutdown(): boolean {
+    public Shutdown(): void {
         Log.Info("LayerStack::Shutdown - Detaching all layers");
 
-        let success: boolean = false;
-
-        try {
-            for (const layer of this.layers) {
-                layer.OnDetach();
-            }
-
-            this.layers = [];
-            this.layerInsertIndex = 0;
-
-            success = true;
-        } catch (error: any) {
-            Log.Error(error.message);
-
-            success = false;
+        for (const layer of this.layers) {
+            layer.OnDetach();
         }
 
-        return success;
+        this.layers = [];
+        this.layerInsertIndex = 0;
     }
 
     /**
