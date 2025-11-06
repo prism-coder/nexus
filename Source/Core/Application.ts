@@ -322,11 +322,21 @@ export class Application {
     private async Shutdown(): Promise<void> {
         Log.Info("Application::Shutdown - Shutting down the Application");
 
+        let layerStackSuccess: boolean;
+
         // Shut down all services first.
         await this.serviceContainer.Shutdown();
 
         // Then shut down the `LayerStack`.
-        const layerStackSuccess = this.layerStack.Shutdown();
+        try {
+            this.layerStack.Shutdown();
+            layerStackSuccess = true;
+        } catch (error: any) {
+            Log.Error(
+                `Application::Shutdown - LayerStack failed to shutdown: ${error.message}`
+            );
+            layerStackSuccess = false;
+        }
 
         Log.Info("Application::Shutdown - Shutdown complete. Exiting process.");
 
