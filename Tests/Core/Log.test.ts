@@ -1,9 +1,11 @@
-// Tests/Core/Log.test.ts
-
-import { Log, LogLevel, LogSpecification } from '../../Source/Core/Log';
+import {
+    Log,
+    LogLevel,
+    LogSpecification
+} from '../../Source/Core/Log';
 
 describe('Log', () => {
-    // Definimos los spies fuera para que sean accesibles en todos los scopes
+    let consoleLogSpy: jest.SpyInstance;
     let consoleTraceSpy: jest.SpyInstance;
     let consoleDebugSpy: jest.SpyInstance;
     let consoleInfoSpy: jest.SpyInstance;
@@ -11,7 +13,7 @@ describe('Log', () => {
     let consoleErrorSpy: jest.SpyInstance;
 
     beforeEach(() => {
-        // Creamos los spies AQUI
+        consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
         consoleTraceSpy = jest.spyOn(console, 'trace').mockImplementation(() => {});
         consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
         consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
@@ -22,7 +24,7 @@ describe('Log', () => {
     });
 
     afterEach(() => {
-        // Restauramos los spies DESPUÉS de CADA test
+        consoleLogSpy.mockRestore();
         consoleTraceSpy.mockRestore();
         consoleDebugSpy.mockRestore();
         consoleInfoSpy.mockRestore();
@@ -31,20 +33,19 @@ describe('Log', () => {
     });
 
     it('should initialize and set app name', () => {
-        const spec: LogSpecification = { Name: 'MiApp' };
-        Log.Initialize(spec); // Llama a console.info 2 veces
+        const spec: LogSpecification = { Name: "MyApp" };
+        Log.Initialize(spec);
         
         expect(Log.GetSpecification()).toEqual(spec);
         expect(consoleInfoSpy).toHaveBeenCalledTimes(2);
 
-        Log.SetAppName('OtraApp');
-        expect(Log.GetSpecification().Name).toBe('OtraApp');
+        Log.SetAppName("OtherApp");
+        expect(Log.GetSpecification().Name).toBe("OtherApp");
     });
 
     it('should write logs based on level', () => {
         Log.Trace('trace msg');
         expect(consoleTraceSpy).toHaveBeenCalledWith(expect.stringContaining('TRACE'));
-        // ... (el resto de este test está bien) ...
         Log.Debug('debug msg');
         expect(consoleDebugSpy).toHaveBeenCalledWith(expect.stringContaining('DEBUG'));
         Log.Info('info msg');
@@ -68,21 +69,18 @@ describe('Log', () => {
 
         expect(consoleTraceSpy).not.toHaveBeenCalled();
         expect(consoleDebugSpy).not.toHaveBeenCalled();
-        expect(consoleInfoSpy).not.toHaveBeenCalled(); // <-- Ahora sí pasará
+        expect(consoleInfoSpy).not.toHaveBeenCalled();
         expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
         expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
 
     it('should handle unknown log level string', () => {
-        // Forzamos un nivel desconocido para probar LevelToString
-        (Log as any).Write(-1, 'unknown msg');
-        // Gracias al 'default' que añadimos, esto ahora llama a console.info
-        expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('UNKNOWN'));
+        (Log as any).Write(99, "unknown msg");
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('UNKNOWN'));
     });
 
-    // --- TEST ADICIONAL PARA COBERTURA ---
     it('should cover branch for console.trace in Write', () => {
-        // Este test solo existe para cubrir el branch de Log.ts:244
         Log.SetLevel(LogLevel.Trace);
         Log.Trace('test trace');
         expect(consoleTraceSpy).toHaveBeenCalled();

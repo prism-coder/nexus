@@ -2,51 +2,47 @@ import {
     Application,
     ApplicationSpecification,
     Log,
-    LayerStack,
-    ServiceContainer,
     ServiceLocator,
     EventBus,
     Service,
     Layer,
     Event,
-} from "../../Source"; // Tu import de 'Source' está bien
+} from "../../Source";
 
-// --- Instancias de Mocks ---
 const mockContainerInstance = {
     Register: jest.fn(),
     Initialize: jest.fn(),
-    Shutdown: jest.fn(),
+    Shutdown: jest.fn(() => Promise.resolve()),
     Get: jest.fn(),
 };
+
 const mockLayerStackInstance = {
     PushLayer: jest.fn(),
     PushOverlay: jest.fn(),
     OnEvent: jest.fn(),
     OnUpdate: jest.fn(),
-    Shutdown: jest.fn(() => true),
+    Shutdown: jest.fn(),
 };
 
-// --- Mocks de Dependencias ---
 jest.mock("../../Source/Core/Log", () => ({
     Log: {
         Initialize: jest.fn(),
         Info: jest.fn(),
         Warning: jest.fn(),
+        Error: jest.fn(),
+        Fatal: jest.fn(),
         SetAppName: jest.fn(),
-        Fatal: jest.fn(), // Añadido para el test de 'unhandledRejection'
+        GetSpecification: jest.fn(() => ({ Name: "MockLog" })),
     },
 }));
 
-jest.mock("../../Source/Core/ServiceContainer", () => {
-    return {
-        ServiceContainer: jest.fn(() => mockContainerInstance),
-    };
-});
-jest.mock("../../Source/Core/LayerStack", () => {
-    return {
-        LayerStack: jest.fn(() => mockLayerStackInstance),
-    };
-});
+jest.mock("../../Source/Core/ServiceContainer", () => ({
+    ServiceContainer: jest.fn(() => mockContainerInstance),
+}));
+
+jest.mock("../../Source/Core/LayerStack", () => ({
+    LayerStack: jest.fn(() => mockLayerStackInstance),
+}));
 
 jest.mock("../../Source/Core/ServiceLocator");
 jest.mock("../../Source/Core/EventBus");
@@ -56,7 +52,6 @@ const mockProcessExit = jest
     .mockImplementation(
         (code?: string | number | null | undefined) => undefined as never
     );
-// ---
 
 describe("Application", () => {
     let spec: ApplicationSpecification;
@@ -67,18 +62,18 @@ describe("Application", () => {
     });
 
     beforeEach(() => {
-        // --- ¡¡LA CORRECCIÓN MÁS IMPORTANTE!! ---
-        // Reseteamos el Singleton de Application antes de cada test
-        (Application as any).instance = undefined;
-        // ------------------------------------------
-
         jest.clearAllMocks();
-
-        // Reseteamos el mock de Shutdown de LayerStack a su valor por defecto
-        mockLayerStackInstance.Shutdown.mockReturnValue(true);
-
         spec = { Name: "TestApp" };
-        app = Application.Create(spec);
+        app = new Application(spec);
+    });
+
+    afterEach(async () => {
+        if ((app as any).running) {
+            app.Close();
+        }
+
+        jest.runOnlyPendingTimers();
+        await Promise.resolve();
     });
 
     afterAll(() => {
@@ -86,16 +81,13 @@ describe("Application", () => {
         mockProcessExit.mockRestore();
     });
 
-    it("should create a singleton instance", () => {
+    it("should create a new instance", () => {
         expect(app).toBeInstanceOf(Application);
-        const app2 = Application.Create({ Name: "App2" });
-        expect(app2).toBe(app);
-        expect(Log.SetAppName).toHaveBeenCalledWith("App2");
+        const app2 = new Application({ Name: "App2" });
+        expect(app2).not.toBe(app);
     });
 
     it("should initialize all core components on create", () => {
-        // app se crea en beforeEach, llamando a Initialize 1 vez
-        expect(Log.Initialize).toHaveBeenCalledTimes(1); // <-- Corregido
         expect(Log.Initialize).toHaveBeenCalledWith(
             expect.objectContaining({ Name: "TestApp" })
         );
@@ -106,31 +98,32 @@ describe("Application", () => {
     });
 
     it("should register and initialize services", async () => {
-        class MockSvc extends Service {
-            Initialize = jest.fn();
-            Shutdown = jest.fn();
+        class MockService extends Service {
+            OnInitialize = jest.fn();
+            OnShutdown = jest.fn();
         }
-        const mockService = new MockSvc();
+        const mockService = new MockService();
 
-        app.RegisterService(MockSvc, mockService);
+        app.RegisterService(MockService, mockService);
         await app.InitializeServices();
 
         expect(mockContainerInstance.Register).toHaveBeenCalledWith(
-            MockSvc,
+            MockService,
             mockService
         );
         expect(mockContainerInstance.Initialize).toHaveBeenCalledTimes(1);
     });
 
     it("should push layers to the layer stack", () => {
-        class MockLyr extends Layer {
+        class MockLayer extends Layer {
             OnAttach = jest.fn();
             OnDetach = jest.fn();
             OnUpdate = jest.fn();
             OnEvent = jest.fn();
         }
-        const mockLayer = new MockLyr();
-        const mockOverlay = new MockLyr();
+
+        const mockLayer = new MockLayer();
+        const mockOverlay = new MockLayer();
 
         app.PushLayer(mockLayer);
         app.PushOverlay(mockOverlay);
@@ -152,40 +145,35 @@ describe("Application", () => {
     it("should run the tick loop and update layers", () => {
         app.Run();
 
-        // --- Corrección de Lógica de Tick ---
-        // Run() llama a Tick() 1 vez sincrónicamente
         expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(1);
         expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledWith(
             expect.any(Number)
         );
 
-        jest.runOnlyPendingTimers(); // Avanza 1 tick de setImmediate
+        jest.runOnlyPendingTimers();
         expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(2);
 
-        jest.runOnlyPendingTimers(); // Avanza otro tick
+        jest.runOnlyPendingTimers();
         expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(3);
     });
 
     it("should stop the loop and shut down on Close()", async () => {
-        app.Run(); // Tick 1 (sync)
+        app.Run();
+        jest.runOnlyPendingTimers();
 
-        jest.runOnlyPendingTimers(); // Tick 2 (async)
-
-        // --- Corrección de Lógica de Tick ---
         expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(2);
 
         app.Close();
 
-        jest.runOnlyPendingTimers(); // Avanza el tick que detectará running = false
+        jest.runOnlyPendingTimers();
+        await Promise.resolve();
 
-        // No debió actualizarse de nuevo
-        expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(2); // <-- Corregido
+        expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(2);
         expect(mockContainerInstance.Shutdown).toHaveBeenCalledTimes(1);
         expect(mockLayerStackInstance.Shutdown).toHaveBeenCalledTimes(1);
         expect(mockProcessExit).toHaveBeenCalledWith(0);
     });
-
-    // --- Tests Adicionales para Cobertura ---
+    
     it("should return specification", () => {
         expect(app.GetSpecification()).toBe(spec);
     });
@@ -195,14 +183,16 @@ describe("Application", () => {
     });
 
     it("should handle shutdown failure from layerstack", async () => {
-        // Hacemos que Shutdown() de LayerStack devuelva 'false'
-        mockLayerStackInstance.Shutdown.mockReturnValue(false);
+        mockLayerStackInstance.Shutdown.mockImplementation(() => {
+            throw new Error("Test Shutdown Failure");
+        });
 
         app.Run();
         app.Close();
-        jest.runOnlyPendingTimers(); // Shutdown corre
 
-        // Debe salir con código 1
-        expect(mockProcessExit).toHaveBeenCalledWith(1); // <-- Corregido
+        jest.runOnlyPendingTimers();
+        await Promise.resolve();
+
+        expect(mockProcessExit).toHaveBeenCalledWith(1);
     });
 });
