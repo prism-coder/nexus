@@ -49,7 +49,14 @@ Here is what a minimal `app-api` application looks like using `Nexus`:
 `main.ts`
 
 ```typescript
-import { Application, Event, Layer, Log, ServiceLocator } from "@prism-dev/nexus";
+import {
+    Application,
+    ApplicationSpecification,
+    Event,
+    Layer,
+    Log,
+    ServiceLocator
+} from "@prism-dev/nexus";
 
 // 1. Define a simple Layer.
 class MyLayer extends Layer {
@@ -69,7 +76,8 @@ class MyLayer extends Layer {
 
 // 2. Create the Application.
 (async () => {
-    const app: Application = Application.Create({ Name: "MyFirstApp" });
+    const spec: ApplicationSpecification = { Name: "MyApp" };
+    const app: Application = new Application(spec);
 
     try {
         // 3. Register & Initialize Services.
