@@ -40,9 +40,10 @@ export class ServiceContainer {
      * Registers a `Service` instance against its class identifier.
      *
      * @template T
-     * @param {ServiceIdentifier<T>} identifier The class.
-     * @param {T} instance The instance.
+     * @param {ServiceIdentifier<T>} identifier The `Service` class.
+     * @param {T} instance The `Service` instance.
      * @returns {void}
+     * @throws {Error} If the `Service` is already registered.
      * @memberof ServiceContainer
      */
     public Register<T extends Service>(
@@ -50,8 +51,10 @@ export class ServiceContainer {
         instance: T
     ): void {
         if (this.services.has(identifier)) {
-            Log.Warning(`ServiceContainer::Register - Service already registered: ${identifier.name}`);
-            return;
+            // This is a developer error, so we throw.
+            throw new Error(
+                `ServiceContainer::Register - Service already registered: '${identifier.name}'`
+            );
         }
 
         this.services.set(identifier, instance);
@@ -72,7 +75,7 @@ export class ServiceContainer {
         if (!service) {
             // This is a developer error, so we throw.
             throw new Error(
-                `ServiceContainer::Get - Service not found: ${identifier.name}. ` +
+                `ServiceContainer::Get - Service not found: '${identifier.name}'. ` +
                 `Did you forget to call 'app.RegisterService()'?`
             );
         }
@@ -94,7 +97,7 @@ export class ServiceContainer {
                 Log.Info(`ServiceContainer::Initialize - Initializing service: ${identifier.name}`);
                 await service.Initialize();
             } catch (error: any) {
-                Log.Error(`ServiceContainer::Initialize - Failed to initialize service: ${identifier.name}: ${error.message}`);
+                Log.Error(`ServiceContainer::Initialize - Failed to initialize service '${identifier.name}': ${error.message}`);
                 throw error;
             }
         }
