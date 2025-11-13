@@ -1,5 +1,7 @@
 # Nexus
 
+![Nexus. The composable backend. Build with intention](Assets/Nexus%20-%20Card.png "Nexus Banner")
+
 **A lightweight, event-driven, layer-stack framework for building modular Node.js applications with TypeScript.**
 
 Nexus provides a simple yet powerful architecture for your backend applications, inspired by game engine design. It's built around two core concepts: a **Layer Stack** for processing logic in stages and a global **Event Bus** for decoupled, application-wide communication.
