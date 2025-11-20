@@ -1,6 +1,6 @@
 {
     "name": "@prism-dev/nexus",
-    "version": "1.1.3",
+    "version": "1.1.4",
     "description": "A lightweight, event-driven, layer-stack framework for building modular Node.js applications with TypeScript.",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -15,12 +15,15 @@
         "dist"
     ],
     "keywords": [
-        "nexus",
-        "framework",
-        "nodejs",
-        "typescript",
+        "architecture",
+        "backend",
+        "composable",
         "event-driven",
-        "layer-stack"
+        "framework",
+        "layer-stack",
+        "nexus",
+        "nodejs",
+        "typescript"
     ],
     "homepage": "https://github.com/prism-coder/nexus#readme",
     "bugs": {
