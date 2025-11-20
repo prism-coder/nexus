@@ -30,6 +30,29 @@ This structure allows you to build complex applications where components are com
 
 * **Type-Safe:** Written entirely in TypeScript.
 
+## Nexus CLI
+
+To speed up development and ensure best practices, we highly recommend using the official **Nexus CLI**. It handles all the boilerplate for you.
+
+**NPM Package:** [`@prism-dev/nexus-cli`](https://www.npmjs.com/package/@prism-dev/nexus-cli)
+
+### Installation
+
+```bash
+npm install -g @prism-dev/nexus-cli
+```
+### Capabilities
+
+The CLI allows you to instantly generate:
+
+* **Projects:** `nexus create:project <project-name>` *(Sets up TS, directory structure, and config)*
+
+* **Layers:** `nexus create:layer <LayerName>`
+
+* **Events:** `nexus create:event <EventName>`
+
+* **Services:** `nexus create:service <ServiceName>`
+
 ## Ideal For
 
 Nexus is perfect for any application that benefits from a clear separation of concerns:
@@ -46,7 +69,7 @@ Nexus is perfect for any application that benefits from a clear separation of co
 
 ## Basic Usage
 
-Here is what a minimal `app-api` application looks like using `Nexus`:
+Here is what a minimal `app-api` application looks like using `Nexus`. *(Note: You can generate a full project structure automatically using the CLI).*
 
 `main.ts`
 
@@ -85,8 +108,8 @@ class MyLayer extends Layer {
         // 3. Register & Initialize Services.
         // app.RegisterService(ConfigService, new ConfigService());
         await app.InitializeServices();
-    } catch (error) {
-        console.error("Failed to initialize services!", error);
+    } catch (error: any) {
+        Log.Error(`Failed to initialize services!: ${error.message}`);
         process.exit(1);
     }
     
