@@ -1,5 +1,6 @@
 import { Event } from "./Event";
 import { Log } from "./Log";
+import { NotInitializedError } from "./Errors";
 
 // Define a type for the emit function that will be provided by the Application.
 type EventEmitFunction = (event: Event) => void;
@@ -65,7 +66,7 @@ export class EventBus {
     public static Emit(event: Event): void {
         if (!this.emitFunction) {
             // This is a developer error, so we throw.
-            throw new Error(
+            throw new NotInitializedError(
                 "EventBus::Emit - EventBus has not been initialized! " +
                 "Did you forget to call 'EventBus.Initialize()'?"
             );

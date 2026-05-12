@@ -1,6 +1,7 @@
 import { ServiceContainer, ServiceIdentifier } from "./ServiceContainer";
 import { Service } from "./Service";
 import { Log } from "./Log";
+import { AlreadyInitializedError, NotInitializedError } from "./Errors";
 
 /**
  * A static `ServiceLocator` pattern implementation.
@@ -56,7 +57,7 @@ export class ServiceLocator {
      */
     public static Initialize(container: ServiceContainer): void {
         if (this.container) {
-            throw new Error(
+            throw new AlreadyInitializedError(
                 "ServiceLocator::Initialize - ServiceLocator has already been initialized! " +
                 "Did you call 'ServiceLocator.Initialize()' more than once?"
             );
@@ -78,7 +79,7 @@ export class ServiceLocator {
      */
     public static Get<T extends Service>(identifier: ServiceIdentifier<T>): T {
         if (!this.container) {
-            throw new Error(
+            throw new NotInitializedError(
                 "ServiceLocator::Get - ServiceLocator has not been initialized! " +
                 "Did you forget to call 'ServiceLocator.Initialize()'?"
             );
@@ -89,7 +90,7 @@ export class ServiceLocator {
 
         // Ensure the Service is initialized.
         if (!service.IsInitialized()) {
-            throw new Error(
+            throw new NotInitializedError(
                 `ServiceLocator::Get - An attempt was made to retrieve the service '${identifier.name}' before it was initialized. ` +
                 `Did you forget to call 'app.InitializeServices()' in your main.ts file?`
             );
