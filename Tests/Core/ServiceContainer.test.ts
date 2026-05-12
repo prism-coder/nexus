@@ -1,7 +1,9 @@
 import {
     ServiceContainer,
     Service,
-    Log
+    Log,
+    ServiceAlreadyRegisteredError,
+    ServiceNotFoundError
 } from '../../Source';
 
 class MockService extends Service {
@@ -49,9 +51,7 @@ describe('ServiceContainer', () => {
 
         expect(() => {
             container.Register(MockService, service2);
-        }).toThrow(
-            `ServiceContainer::Register - Service already registered: 'MockService'`
-        );
+        }).toThrow(ServiceAlreadyRegisteredError);
 
         expect(container.Get(MockService)).toBe(service);
     });
@@ -64,10 +64,7 @@ describe('ServiceContainer', () => {
 
         expect(() => {
             container.Get(UnregisteredService);
-        }).toThrow(
-            `ServiceContainer::Get - Service not found: 'UnregisteredService'. ` +
-            `Did you forget to call 'app.RegisterService()'?`
-        );
+        }).toThrow(ServiceNotFoundError);
     });
 
     it('should catch and re-throw error if a service fails to initialize', async () => {
@@ -87,6 +84,32 @@ describe('ServiceContainer', () => {
         expect(service.OnInitialize).toHaveBeenCalledTimes(1);
         expect(errorSpy).toHaveBeenCalledWith(
             `ServiceContainer::Initialize - Failed to initialize service 'FailingService': DB connection failed`
+        );
+    });
+
+    it('should attempt to shut down all services even if one fails, then throw a NexusError', async () => {
+        class FailingShutdownService extends Service {
+            OnInitialize = jest.fn(() => Promise.resolve());
+            OnShutdown = jest.fn(async () => {
+                throw new Error('shutdown failed');
+            });
+        }
+
+        const failingService = new FailingShutdownService();
+        container.Register(FailingShutdownService, failingService);
+
+        await expect(container.Shutdown()).rejects.toThrow(
+            expect.objectContaining({
+                name: "NexusError",
+                message: expect.stringContaining("FailingShutdownService"),
+            })
+        );
+
+        // Both services must have been attempted
+        expect(service.OnShutdown).toHaveBeenCalledTimes(1);
+        expect(failingService.OnShutdown).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("shutdown failed")
         );
     });
 });

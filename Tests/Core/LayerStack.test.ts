@@ -3,7 +3,8 @@ import {
     Layer,
     Event,
     Log,
-    EventCategory
+    EventCategory,
+    InvalidArgumentError
 } from "../../Source";
 
 class MockLayer extends Layer {
@@ -128,5 +129,78 @@ describe("LayerStack", () => {
         expect(layer2.OnDetach).toHaveBeenCalledTimes(1);
         expect(overlay.OnDetach).toHaveBeenCalledTimes(1);
         expect(layerStack.GetLayers()).toHaveLength(0);
+    });
+
+    it("should throw InvalidArgumentError when PushLayer receives null", () => {
+        expect(() => {
+            layerStack.PushLayer(null as unknown as Layer);
+        }).toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError when PushOverlay receives null", () => {
+        expect(() => {
+            layerStack.PushOverlay(null as unknown as Layer);
+        }).toThrow(InvalidArgumentError);
+    });
+
+    it("should log a warning when PopLayer is called with a layer not in the stack", () => {
+        const warnSpy = jest.spyOn(Log, "Warning").mockImplementation(() => {});
+        const unknownLayer = new MockLayer("unknown");
+
+        layerStack.PopLayer(unknownLayer);
+
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining("MockLayer")
+        );
+        expect(layerStack.GetLayers()).toHaveLength(3);
+
+        warnSpy.mockRestore();
+    });
+
+    it("should log a warning when PopOverlay is called with an overlay not in the stack", () => {
+        const warnSpy = jest.spyOn(Log, "Warning").mockImplementation(() => {});
+        const unknownOverlay = new MockLayer("unknown");
+
+        layerStack.PopOverlay(unknownOverlay);
+
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining("MockLayer")
+        );
+        expect(layerStack.GetLayers()).toHaveLength(3);
+
+        warnSpy.mockRestore();
+    });
+
+    it("should continue OnUpdate for all layers even if one throws", () => {
+        const errorSpy = jest.spyOn(Log, "Error").mockImplementation(() => {});
+        layer1.OnUpdate.mockImplementation(() => { throw new Error("layer1 update error"); });
+
+        layerStack.OnUpdate(16);
+
+        expect(layer1.OnUpdate).toHaveBeenCalledTimes(1);
+        expect(layer2.OnUpdate).toHaveBeenCalledTimes(1);
+        expect(overlay.OnUpdate).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("layer1 update error")
+        );
+
+        errorSpy.mockRestore();
+    });
+
+    it("should continue OnEvent propagation for remaining layers even if one throws", () => {
+        const errorSpy = jest.spyOn(Log, "Error").mockImplementation(() => {});
+        const event = new MockEvent();
+        overlay.OnEvent.mockImplementation(() => { throw new Error("overlay event error"); });
+
+        layerStack.OnEvent(event);
+
+        expect(overlay.OnEvent).toHaveBeenCalledTimes(1);
+        expect(layer2.OnEvent).toHaveBeenCalledTimes(1);
+        expect(layer1.OnEvent).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("overlay event error")
+        );
+
+        errorSpy.mockRestore();
     });
 });

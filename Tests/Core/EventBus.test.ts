@@ -1,7 +1,8 @@
 import {
     EventBus,
     Event,
-    Log
+    Log,
+    NotInitializedError
 } from "../../Source";
 
 describe("EventBus", () => {
@@ -24,10 +25,7 @@ describe("EventBus", () => {
     it("should throw an error if Emit is called before Initialize", () => {
         expect(() => {
             EventBus.Emit(mockEvent);
-        }).toThrow(
-            "EventBus::Emit - EventBus has not been initialized! " +
-            "Did you forget to call 'EventBus.Initialize()'?"
-        );
+        }).toThrow(NotInitializedError);
     });
 
     it("should call the emitFunction after being initialized", () => {

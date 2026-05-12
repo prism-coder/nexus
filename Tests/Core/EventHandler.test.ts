@@ -1,7 +1,8 @@
 import {
     Event,
     EventCategory,
-    EventHandler
+    EventHandler,
+    Log
 } from "../../Source";
 
 const EventType = {
@@ -51,24 +52,24 @@ describe("EventHandler", () => {
         expect(mockCallback).not.toHaveBeenCalled();
     });
 
-    it("should consume the event if the handler returns true", () => {
+    it("should consume the event if the handler returns true", async () => {
         const handler = new EventHandler(eventA);
 
         const mockCallback = jest.fn(() => true);
 
         handler.Handle(EventType.Test.A, mockCallback);
 
-        expect(mockCallback).toHaveBeenCalledTimes(1);
+        expect(await mockCallback).toHaveBeenCalledTimes(1);
         expect(eventA.Consumed()).toBe(true);
     });
 
-    it("should NOT consume the event if the handler returns false", () => {
+    it("should NOT consume the event if the handler returns false", async () => {
         const handler = new EventHandler(eventA);
         const mockCallback = jest.fn(() => false);
 
         handler.Handle(EventType.Test.A, mockCallback);
 
-        expect(mockCallback).toHaveBeenCalledTimes(1);
+        expect(await mockCallback).toHaveBeenCalledTimes(1);
         expect(eventA.Consumed()).toBe(false);
     });
 
@@ -81,5 +82,19 @@ describe("EventHandler", () => {
         handler.Handle(EventType.Test.A, mockCallback);
 
         expect(mockCallback).not.toHaveBeenCalled();
+    });
+
+    it("should log the error and re-throw if the handler callback throws", async () => {
+        const errorSpy = jest.spyOn(Log, "Error").mockImplementation(() => {});
+        const handler = new EventHandler(eventA);
+        const handlerError = new Error("handler failure");
+        const mockCallback = jest.fn(() => { throw handlerError; });
+
+        await expect(handler.Handle(EventType.Test.A, mockCallback)).rejects.toThrow("handler failure");
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("handler failure")
+        );
+
+        errorSpy.mockRestore();
     });
 });

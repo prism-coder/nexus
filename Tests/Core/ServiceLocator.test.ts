@@ -2,7 +2,9 @@ import {
     ServiceLocator,
     ServiceContainer,
     Service,
-    Log
+    Log,
+    NotInitializedError,
+    AlreadyInitializedError
 } from "../../Source";
 
 class MockService extends Service {
@@ -30,10 +32,7 @@ describe("ServiceLocator", () => {
     it("should throw an error if Get is called before Locator is initialized", () => {
         expect(() => {
             ServiceLocator.Get(MockService);
-        }).toThrow(
-            "ServiceLocator::Get - ServiceLocator has not been initialized! " +
-            "Did you forget to call 'ServiceLocator.Initialize()'?"
-        );
+        }).toThrow(NotInitializedError);
     });
 
     it("should throw an error if Get is called before Service is initialized", async () => {
@@ -41,9 +40,7 @@ describe("ServiceLocator", () => {
 
         expect(() => {
             ServiceLocator.Get(MockService);
-        }).toThrow(
-            `ServiceLocator::Get - An attempt was made to retrieve the service 'MockService' before it was initialized.`
-        );
+        }).toThrow(NotInitializedError);
     });
 
     it("should Get a service after *both* Locator and Service are initialized", async () => {
@@ -63,9 +60,6 @@ describe("ServiceLocator", () => {
 
         expect(() => {
             ServiceLocator.Initialize(container2);
-        }).toThrow(
-            "ServiceLocator::Initialize - ServiceLocator has already been initialized! " +
-            "Did you call 'ServiceLocator.Initialize()' more than once?"
-        );
+        }).toThrow(AlreadyInitializedError);
     });
 });

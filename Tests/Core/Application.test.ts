@@ -7,6 +7,7 @@ import {
     Service,
     Layer,
     Event,
+    InvalidArgumentError,
 } from "../../Source";
 
 const mockContainerInstance = {
@@ -63,7 +64,8 @@ describe("Application", () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        spec = { Name: "TestApp" };
+
+        spec = { Name: "TestApp", RunLoop: true };
         app = new Application(spec);
     });
 
@@ -142,6 +144,31 @@ describe("Application", () => {
         expect(mockLayerStackInstance.OnEvent).toHaveBeenCalledWith(mockEvent);
     });
 
+    it("should run the tick loop when RunLoop is true", () => {
+        app.Run();
+
+        expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(1);
+        jest.runOnlyPendingTimers();
+        expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(2);
+    });
+
+    it("should NOT run the tick loop when RunLoop is false", () => {
+        const apiSpec: ApplicationSpecification = {
+            Name: "API",
+            RunLoop: false,
+        };
+
+        const apiApp = new Application(apiSpec);
+
+        apiApp.Run();
+
+        expect(mockLayerStackInstance.OnUpdate).not.toHaveBeenCalled();
+        jest.runOnlyPendingTimers();
+        expect(mockLayerStackInstance.OnUpdate).not.toHaveBeenCalled();
+
+        apiApp.Close();
+    });
+
     it("should run the tick loop and update layers", () => {
         app.Run();
 
@@ -193,6 +220,93 @@ describe("Application", () => {
         jest.runOnlyPendingTimers();
         await Promise.resolve();
 
-        expect(mockProcessExit).toHaveBeenCalledWith(1);
+        expect(mockProcessExit).toHaveBeenCalledWith(0);
+    });
+
+    it("should throw InvalidArgumentError if Name is empty", () => {
+        expect(() => {
+            new Application({ Name: "" });
+        }).toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError if Name is whitespace", () => {
+        expect(() => {
+            new Application({ Name: "   " });
+        }).toThrow(InvalidArgumentError);
+    });
+
+    it("should log a warning and not double-shutdown when Close() is called twice", async () => {
+        const warnSpy = jest.spyOn(Log, "Warning");
+
+        app.Run();
+        app.Close();
+        app.Close();
+
+        jest.runOnlyPendingTimers();
+        await Promise.resolve();
+
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining("Close() was called more than once")
+        );
+        expect(mockContainerInstance.Shutdown).toHaveBeenCalledTimes(1);
+
+        warnSpy.mockRestore();
+    });
+
+    it("should catch an OnUpdate error in Tick(), log it, and call Close()", async () => {
+        const errorSpy = jest.spyOn(Log, "Error");
+        mockLayerStackInstance.OnUpdate.mockImplementationOnce(() => {
+            throw new Error("Tick error");
+        });
+
+        app.Run();
+
+        jest.runOnlyPendingTimers();
+        await Promise.resolve();
+
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("Tick error")
+        );
+        // Loop should have stopped — no further OnUpdate calls after the error
+        jest.runOnlyPendingTimers();
+        expect(mockLayerStackInstance.OnUpdate).toHaveBeenCalledTimes(1);
+
+        errorSpy.mockRestore();
+    });
+
+    it("should catch an OnEvent error in EmitEvent() and log it", () => {
+        const errorSpy = jest.spyOn(Log, "Error");
+        mockLayerStackInstance.OnEvent.mockImplementationOnce(() => {
+            throw new Error("EmitEvent error");
+        });
+
+        const mockEvent = {} as Event;
+        app.EmitEvent(mockEvent);
+
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("EmitEvent error")
+        );
+
+        errorSpy.mockRestore();
+    });
+
+    it("should continue to shut down LayerStack when serviceContainer.Shutdown() throws", async () => {
+        const errorSpy = jest.spyOn(Log, "Error");
+        mockContainerInstance.Shutdown.mockRejectedValueOnce(
+            new Error("Service shutdown failed")
+        );
+
+        app.Run();
+        app.Close();
+
+        jest.runOnlyPendingTimers();
+        await Promise.resolve();
+
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("Service shutdown failed")
+        );
+        expect(mockLayerStackInstance.Shutdown).toHaveBeenCalledTimes(1);
+
+        errorSpy.mockRestore();
     });
 });
