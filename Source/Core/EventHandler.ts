@@ -1,4 +1,5 @@
 import { Event } from "./Event";
+import { Log } from "./Log";
 
 /**
  * A helper class to handle events to dedicated handler functions
@@ -77,15 +78,15 @@ export class EventHandler {
      *
      * @template T A class that extends `Event`.
      * @param {string} type The `Event` type to match against.
-     * @param {(event: T) => boolean} handler The function to call if the type matches.
+     * @param {(event: T) => Promise<boolean> | boolean} handler The function to call if the type matches.
      * Should return `true` to consume the event.
-     * @returns {void}
+     * @returns {Promise<void>}
      * @memberof EventHandler
      */
-    public Handle<T extends Event>(
+    public async Handle<T extends Event>(
         type: string,
-        handler: (event: T) => boolean
-    ): void {
+        handler: (event: T) => Promise<boolean> | boolean
+    ): Promise<void> {
         // If the Event is already consumed or types don't match, do nothing.
         if (this.event.Consumed() || this.event.Type !== type) {
             return;
@@ -93,8 +94,15 @@ export class EventHandler {
 
         // Call the handler and pass the type-casted event.
         // If the handler returns true, consume the event.
-        if (handler(this.event as T)) {
-            this.event.Consume();
+        try {
+            if (await handler(this.event as T)) {
+                this.event.Consume();
+            }
+        } catch (error: any) {
+            Log.Error(
+                `EventHandler::Handle - Unhandled error in handler for event type '${type}': ${error.message}`
+            );
+            throw error;
         }
     }
 }
