@@ -6,6 +6,7 @@ import { EventBus } from "./EventBus";
 import { ServiceContainer, ServiceIdentifier } from "./ServiceContainer";
 import { ServiceLocator } from "./ServiceLocator";
 import { Service } from "./Service";
+import { InvalidArgumentError } from "./Errors";
 
 /**
  * Holds specification data for the Application.
@@ -21,6 +22,17 @@ export interface ApplicationSpecification {
      * @memberof ApplicationSpecification
      */
     Name: string;
+
+    /**
+     * If `true`, the application will run a continuous update loop (`Tick`).
+     * This is useful for real-time applications like games or simulations.
+     * If `false` or `undefined`, the application will run in Event-Driven mode
+     * (no loop), which is ideal for REST APIs or WebSockets services to save resources.
+     *
+     * @type {boolean}
+     * @memberof ApplicationSpecification
+     */
+    RunLoop?: boolean;
 }
 
 /**
@@ -33,36 +45,13 @@ export interface ApplicationSpecification {
  * @class Application
  * @example
  * ```typescript
- * import { Application, ApplicationSpecification, Log, Service, Layer } from "@prism-dev/nexus";
+ * // Example 1: API Mode (Default)
+ * const app = new Application({ Name: "MyAPI" });
+ * app.Run(); // Runs without a loop, waiting for events.
  *
- * // (Define custom Services and Layers...)
- *
- * // Main application entry point.
- * (async () => {
- *     // 1. Create the application.
- *     const spec: ApplicationSpecification = { Name: "MyApp" };
- *     const app: Application = new Application(spec);
- *
- *     try {
- *         // 2. Register services.
- *         app.RegisterService(MyService, new MyService());
- *     
- *         // 3. Initialize services (async).
- *         await app.InitializeServices();
- *     } catch (error: any) {
- *         Log.Fatal(`Failed to initialize services!: ${error.message}`);
- *         process.exit(1);
- *     }
- *     
- *     // 4. Push layers.
- *     app.PushLayer(new MyLayer());
- *     
- *     // 5. Run the application.
- *     app.Run();
- *     
- *     // 6. Handle graceful shutdown.
- *     process.on('SIGINT', () => app.Close());
- * })();
+ * // Example 2: Game Loop Mode
+ * const app = new Application({ Name: "MyGame", RunLoop: true });
+ * app.Run(); // Starts the continuous Tick loop.
  * ```
  */
 export class Application {
@@ -91,7 +80,7 @@ export class Application {
      * @type {boolean}
      * @memberof Application
      */
-    private running: boolean = true;
+    private running: boolean = false;
 
     /**
      * Variable that holds the last tick time of the `Application`.
@@ -112,36 +101,67 @@ export class Application {
     private serviceContainer: ServiceContainer = new ServiceContainer();
 
     /**
+     * Variable that tracks whether a close/shutdown is already in progress
+     * to prevent duplicate shutdown sequences.
+     *
+     * @private
+     * @type {boolean}
+     * @memberof Application
+     */
+    private closing: boolean = false;
+
+    /**
      * Creates an instance of `Application`.
      *
      * @param {ApplicationSpecification} specification The `ApplicationSpecification`.
      * @memberof Application
      */
     constructor(specification: ApplicationSpecification) {
+        if (!specification.Name || !specification.Name.trim()) {
+            throw new InvalidArgumentError(
+                "Application::constructor - 'Name' must be a non-empty string."
+            );
+        }
+
         this.specification = specification;
 
         this.Initialize();
     }
 
     /**
-     * Starts the application's non-blocking main loop.
-     * The application will begin processing `OnUpdate` ticks for all layers.
+     * Starts the application.
+     *
+     * If `RunLoop` is `true`, it starts the non-blocking main loop, which will
+     * begin processing `OnUpdate` ticks for all layers.
+     * Otherwise, it runs in Event-Driven mode.
      *
      * @memberof Application
      */
     public Run(): void {
-        Log.Info("Application::Run - Running the Application's main loop");
+        Log.Info("Application::Run - Starting Application");
 
-        // Set the running flag.
+        // Set the `running` flag.
         this.running = true;
 
-        // Initialize lastTickTime *before* starting the loop.
-        this.lastTickTime = Date.now();
+        // Only start the `Tick` if the configuration requests it.
+        if (this.specification.RunLoop) {
+            Log.Info("Application::Run - Starting Main Loop (Tick Mode)");
 
-        // Start the first tick.
-        // The Tick() method will schedule itself to run again,
-        // creating the non-blocking loop.
-        this.Tick();
+            // Initialize `lastTickTime` *before* starting the loop.
+            this.lastTickTime = Date.now();
+
+            // Start the first tick.
+            // The Tick() method will schedule itself to run again,
+            // creating the non-blocking loop.
+            this.Tick();
+        } else {
+            Log.Info(
+                "Application::Run - Started in Event-Driven Mode (No Loop)"
+            );
+
+            // Node.js will keep the process alive as long as there
+            // are active event listeners (such as the HTTP server).
+        }
     }
 
     /**
@@ -153,8 +173,8 @@ export class Application {
      * @memberof Application
      */
     private Tick(): void {
-        // If 'running' was set to false
-        // we stop the loop and run shutdown.
+        // If `running` was set to false
+        // we stop the loop and run `Shutdown`.
         if (!this.running) {
             this.Shutdown();
 
@@ -166,8 +186,16 @@ export class Application {
         const timestep: number = time - this.lastTickTime;
         this.lastTickTime = time;
 
-        // Propagate update to the LayerStack.
-        this.layerStack.OnUpdate(timestep);
+        // Propagate update to the `LayerStack`.
+        try {
+            this.layerStack.OnUpdate(timestep);
+        } catch (error: any) {
+            Log.Error(
+                `Application::Tick - Unhandled error in LayerStack.OnUpdate: ${error.message}`
+            );
+            this.Close();
+            return;
+        }
 
         // Schedule the next tick.
         setImmediate(this.Tick.bind(this));
@@ -175,7 +203,7 @@ export class Application {
 
     /**
      * Emits an `Event` to the `LayerStack`.
-     * 
+     *
      * The `Event` will propagate down the stack (from top-most to bottom-most layer)
      * until it is consumed.
      *
@@ -186,7 +214,13 @@ export class Application {
      */
     public EmitEvent(event: Event): void {
         // Propagate event to the layer stack.
-        this.layerStack.OnEvent(event);
+        try {
+            this.layerStack.OnEvent(event);
+        } catch (error: any) {
+            Log.Error(
+                `Application::EmitEvent - Unhandled error in LayerStack.OnEvent: ${error.message}`
+            );
+        }
     }
 
     /**
@@ -216,7 +250,7 @@ export class Application {
 
     /**
      * Registers a `Service` instance with the `Application`'s container.
-     * 
+     *
      * This must be called *before* `InitializeServices()`.
      *
      * @template T
@@ -262,9 +296,24 @@ export class Application {
     public Close(): void {
         Log.Info("Application::Close - Closing the Application");
 
+        if (this.closing) {
+            Log.Warning(
+                "Application::Close - Close() was called more than once. Ignoring duplicate call."
+            );
+            return;
+        }
+
+        this.closing = true;
+
         // This will be detected by the `Tick()` method,
         // which will then trigger `Shutdown()`.
         this.running = false;
+
+        // If we are NOT in a loop, we need to trigger shutdown manually immediately,
+        // because the Tick() won't be there to detect `running = false`.
+        if (!this.specification.RunLoop) {
+            this.Shutdown();
+        }
     }
 
     /**
@@ -288,7 +337,8 @@ export class Application {
     }
 
     /**
-     * Initializes the `Application`'s core components (`Log`, `EventBus`, `ServiceLocator`...).
+     * Initializes the `Application`'s core components
+     * (`Log`, `EventBus`, `ServiceLocator`...).
      *
      * @private
      * @memberof Application
@@ -325,22 +375,25 @@ export class Application {
         let layerStackSuccess: boolean;
 
         // Shut down all services first.
-        await this.serviceContainer.Shutdown();
+        try {
+            await this.serviceContainer.Shutdown();
+        } catch (error: any) {
+            Log.Error(
+                `Application::Shutdown - ServiceContainer failed to shut down: ${error.message}`
+            );
+        }
 
         // Then shut down the `LayerStack`.
         try {
             this.layerStack.Shutdown();
-            layerStackSuccess = true;
         } catch (error: any) {
             Log.Error(
                 `Application::Shutdown - LayerStack failed to shutdown: ${error.message}`
             );
-            layerStackSuccess = false;
         }
 
         Log.Info("Application::Shutdown - Shutdown complete. Exiting process.");
 
-        const exitCode: number = layerStackSuccess ? 0 : 1;
-        process.exit(exitCode);
+        process.exit(0);
     }
 }
