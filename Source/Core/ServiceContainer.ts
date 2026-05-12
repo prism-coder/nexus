@@ -1,5 +1,6 @@
 import { Service } from "./Service";
 import { Log } from "./Log";
+import { NexusError, ServiceAlreadyRegisteredError, ServiceNotFoundError } from "./Errors";
 
 /**
  * A type alias for a `Service`'s constructor.
@@ -52,7 +53,7 @@ export class ServiceContainer {
     ): void {
         if (this.services.has(identifier)) {
             // This is a developer error, so we throw.
-            throw new Error(
+            throw new ServiceAlreadyRegisteredError(
                 `ServiceContainer::Register - Service already registered: '${identifier.name}'`
             );
         }
@@ -74,7 +75,7 @@ export class ServiceContainer {
 
         if (!service) {
             // This is a developer error, so we throw.
-            throw new Error(
+            throw new ServiceNotFoundError(
                 `ServiceContainer::Get - Service not found: '${identifier.name}'. ` +
                 `Did you forget to call 'app.RegisterService()'?`
             );
@@ -114,10 +115,25 @@ export class ServiceContainer {
     public async Shutdown(): Promise<void> {
         Log.Info("ServiceContainer::Shutdown - Shutting down all services...");
 
+        const errors: string[] = [];
+
         for (const [identifier, service] of this.services) {
             Log.Info(`ServiceContainer::Shutdown - Shutting down service: ${identifier.name}`);
 
-            await service.Shutdown();
+            try {
+                await service.Shutdown();
+            } catch (error: any) {
+                Log.Error(
+                    `ServiceContainer::Shutdown - Failed to shut down service '${identifier.name}': ${error.message}`
+                );
+                errors.push(`'${identifier.name}': ${error.message}`);
+            }
+        }
+
+        if (errors.length > 0) {
+            throw new NexusError(
+                `ServiceContainer::Shutdown - One or more services failed to shut down:\n${errors.join("\n")}`
+            );
         }
 
         Log.Info("ServiceContainer::Shutdown - All services have been shut down");
