@@ -1,6 +1,7 @@
 import { Event } from "./Event";
 import { Layer } from "./Layer";
 import { Log } from "./Log";
+import { InvalidArgumentError } from "./Errors";
 
 /**
  * Manages the stack of layers for the `Application`.
@@ -59,6 +60,12 @@ export class LayerStack {
      * @memberof LayerStack
      */
     public PushLayer(layer: Layer): void {
+        if (!layer) {
+            throw new InvalidArgumentError(
+                "LayerStack::PushLayer - 'layer' must not be null or undefined."
+            );
+        }
+
         Log.Info(`LayerStack::PushLayer - Pushing layer: ${layer.constructor.name}`);
 
         // Insert layer at the dedicated insert index.
@@ -76,6 +83,12 @@ export class LayerStack {
      * @memberof LayerStack
      */
     public PushOverlay(overlay: Layer): void {
+        if (!overlay) {
+            throw new InvalidArgumentError(
+                "LayerStack::PushOverlay - 'overlay' must not be null or undefined."
+            );
+        }
+
         Log.Info(`LayerStack::PushOverlay - Pushing overlay: ${overlay.constructor.name}`);
 
         // Overlays are just pushed to the end.
@@ -101,6 +114,10 @@ export class LayerStack {
 
             this.layers.splice(index, 1);
             this.layerInsertIndex--; // Decrement the insert index.
+        } else {
+            Log.Warning(
+                `LayerStack::PopLayer - Layer '${layer.constructor.name}' was not found in the stack.`
+            );
         }
     }
 
@@ -120,6 +137,10 @@ export class LayerStack {
             overlay.OnDetach();
 
             this.layers.splice(index, 1);
+        } else {
+            Log.Warning(
+                `LayerStack::PopOverlay - Overlay '${overlay.constructor.name}' was not found in the stack.`
+            );
         }
     }
 
@@ -141,7 +162,13 @@ export class LayerStack {
      */
     public OnUpdate(ts: number): void {
         for (const layer of this.layers) {
-            layer.OnUpdate(ts);
+            try {
+                layer.OnUpdate(ts);
+            } catch (error: any) {
+                Log.Error(
+                    `LayerStack::OnUpdate - Unhandled error in layer '${layer.constructor.name}': ${error.message}`
+                );
+            }
         }
     }
 
@@ -158,7 +185,13 @@ export class LayerStack {
                 break;
             }
 
-            this.layers[i].OnEvent(event);
+            try {
+                this.layers[i].OnEvent(event);
+            } catch (error: any) {
+                Log.Error(
+                    `LayerStack::OnEvent - Unhandled error in layer '${this.layers[i].constructor.name}': ${error.message}`
+                );
+            }
         }
     }
 }
