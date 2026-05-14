@@ -2,6 +2,7 @@ import {
     Event,
     EventCategory,
     EventHandler,
+    InvalidArgumentError,
     Log
 } from "../../Source";
 
@@ -31,6 +32,47 @@ describe("EventHandler", () => {
     beforeEach(() => {
         eventA = new TestEventA();
         eventB = new TestEventB();
+    });
+
+    it("should throw InvalidArgumentError if constructed with a null event", () => {
+        expect(() => {
+            new EventHandler(null as unknown as Event);
+        }).toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError if constructed with an event that has a null category", () => {
+        const badEvent = { Category: null, Type: "Test:A" } as unknown as Event;
+        expect(() => new EventHandler(badEvent)).toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError if constructed with an event that has an invalid category value", () => {
+        const badEvent = { Category: 999, Type: "Test:A" } as unknown as Event;
+        expect(() => new EventHandler(badEvent)).toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError if constructed with an event that has a null type", () => {
+        const badEvent = { Category: EventCategory.Custom, Type: null } as unknown as Event;
+        expect(() => new EventHandler(badEvent)).toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError if constructed with an event that has a whitespace-only type", () => {
+        const badEvent = { Category: EventCategory.Custom, Type: "   " } as unknown as Event;
+        expect(() => new EventHandler(badEvent)).toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError if Handle receives a null/undefined type", async () => {
+        const handler = new EventHandler(eventA);
+        await expect(handler.Handle(null as unknown as string, jest.fn())).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError if Handle receives an empty type string", async () => {
+        const handler = new EventHandler(eventA);
+        await expect(handler.Handle("   ", jest.fn())).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it("should throw InvalidArgumentError if Handle receives a null handler", async () => {
+        const handler = new EventHandler(eventA);
+        await expect(handler.Handle(EventType.Test.A, null as unknown as () => boolean)).rejects.toThrow(InvalidArgumentError);
     });
 
     it("should call the handler for the correct event type", () => {
@@ -73,7 +115,7 @@ describe("EventHandler", () => {
         expect(eventA.Consumed()).toBe(false);
     });
 
-    it("should not call the handler if the event is already consumed", () => {
+    it("should NOT call the handler if the event is already consumed", () => {
         eventA.Consume();
         
         const handler = new EventHandler(eventA);

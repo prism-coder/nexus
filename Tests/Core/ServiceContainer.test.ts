@@ -2,8 +2,10 @@ import {
     ServiceContainer,
     Service,
     Log,
+    InvalidArgumentError,
     ServiceAlreadyRegisteredError,
-    ServiceNotFoundError
+    ServiceNotFoundError,
+    ServiceShutdownError
 } from '../../Source';
 
 class MockService extends Service {
@@ -46,7 +48,13 @@ describe('ServiceContainer', () => {
         expect(service.OnShutdown).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw an error when registering a duplicate service', () => {
+    it('should throw InvalidArgumentError when registering a null instance', () => {
+        expect(() => {
+            container.Register(MockService, null as unknown as MockService);
+        }).toThrow(InvalidArgumentError);
+    });
+
+    it('should throw ServiceAlreadyRegisteredError when registering a duplicate service', () => {
         const service2 = new MockService();
 
         expect(() => {
@@ -56,7 +64,13 @@ describe('ServiceContainer', () => {
         expect(container.Get(MockService)).toBe(service);
     });
 
-    it('should throw an error if Get is called for an unregistered service', () => {
+    it('should throw InvalidArgumentError when Get is called with null identifier', () => {
+        expect(() => {
+            container.Get(null as unknown as any);
+        }).toThrow(InvalidArgumentError);
+    });
+
+    it('should throw ServiceNotFoundError when Get is called for an unregistered service', () => {
         class UnregisteredService extends Service {
             OnInitialize = jest.fn();
             OnShutdown = jest.fn();
@@ -87,7 +101,7 @@ describe('ServiceContainer', () => {
         );
     });
 
-    it('should attempt to shut down all services even if one fails, then throw a NexusError', async () => {
+    it('should attempt to shut down all services even if one fails, then throw a ServiceShutdownError', async () => {
         class FailingShutdownService extends Service {
             OnInitialize = jest.fn(() => Promise.resolve());
             OnShutdown = jest.fn(async () => {
@@ -98,12 +112,7 @@ describe('ServiceContainer', () => {
         const failingService = new FailingShutdownService();
         container.Register(FailingShutdownService, failingService);
 
-        await expect(container.Shutdown()).rejects.toThrow(
-            expect.objectContaining({
-                name: "NexusError",
-                message: expect.stringContaining("FailingShutdownService"),
-            })
-        );
+        await expect(container.Shutdown()).rejects.toThrow(ServiceShutdownError);
 
         // Both services must have been attempted
         expect(service.OnShutdown).toHaveBeenCalledTimes(1);

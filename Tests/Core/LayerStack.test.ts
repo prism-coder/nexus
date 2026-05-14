@@ -4,7 +4,9 @@ import {
     Event,
     Log,
     EventCategory,
-    InvalidArgumentError
+    InvalidArgumentError,
+    DuplicateLayerError,
+    LayerNotFoundError
 } from "../../Source";
 
 class MockLayer extends Layer {
@@ -38,9 +40,9 @@ describe("LayerStack", () => {
 
     beforeEach(() => {
         layerStack = new LayerStack();
-        layer1 = new MockLayer("layer1");
-        layer2 = new MockLayer("layer2");
-        overlay = new MockLayer("overlay");
+        layer1 = new MockLayer("Layer1");
+        layer2 = new MockLayer("Layer2");
+        overlay = new MockLayer("Overlay");
 
         layerStack.PushLayer(layer1);
         layerStack.PushLayer(layer2);
@@ -98,9 +100,8 @@ describe("LayerStack", () => {
         expect(layer1.OnDetach).not.toHaveBeenCalled();
     });
 
-    it("should not pop an overlay using PopLayer", () => {
-        layerStack.PopLayer(overlay);
-
+    it("should throw LayerNotFoundError when trying to pop an overlay using PopLayer", () => {
+        expect(() => layerStack.PopLayer(overlay)).toThrow(LayerNotFoundError);
         expect(layerStack.GetLayers()).toHaveLength(3);
         expect(overlay.OnDetach).not.toHaveBeenCalled();
     });
@@ -115,9 +116,8 @@ describe("LayerStack", () => {
         expect(overlay.OnDetach).toHaveBeenCalledTimes(1);
     });
 
-    it("should not pop a layer using PopOverlay", () => {
-        layerStack.PopOverlay(layer1);
-
+    it("should throw LayerNotFoundError when trying to pop a layer using PopOverlay", () => {
+        expect(() => layerStack.PopOverlay(layer1)).toThrow(LayerNotFoundError);
         expect(layerStack.GetLayers()).toHaveLength(3);
         expect(layer1.OnDetach).not.toHaveBeenCalled();
     });
@@ -143,32 +143,40 @@ describe("LayerStack", () => {
         }).toThrow(InvalidArgumentError);
     });
 
-    it("should log a warning when PopLayer is called with a layer not in the stack", () => {
-        const warnSpy = jest.spyOn(Log, "Warning").mockImplementation(() => {});
-        const unknownLayer = new MockLayer("unknown");
-
-        layerStack.PopLayer(unknownLayer);
-
-        expect(warnSpy).toHaveBeenCalledWith(
-            expect.stringContaining("MockLayer")
-        );
-        expect(layerStack.GetLayers()).toHaveLength(3);
-
-        warnSpy.mockRestore();
+    it("should throw InvalidArgumentError when PopLayer receives null", () => {
+        expect(() => {
+            layerStack.PopLayer(null as unknown as Layer);
+        }).toThrow(InvalidArgumentError);
     });
 
-    it("should log a warning when PopOverlay is called with an overlay not in the stack", () => {
-        const warnSpy = jest.spyOn(Log, "Warning").mockImplementation(() => {});
-        const unknownOverlay = new MockLayer("unknown");
+    it("should throw InvalidArgumentError when PopOverlay receives null", () => {
+        expect(() => {
+            layerStack.PopOverlay(null as unknown as Layer);
+        }).toThrow(InvalidArgumentError);
+    });
 
-        layerStack.PopOverlay(unknownOverlay);
+    it("should throw DuplicateLayerError when pushing a layer already in the stack", () => {
+        expect(() => {
+            layerStack.PushLayer(layer1);
+        }).toThrow(DuplicateLayerError);
+    });
 
-        expect(warnSpy).toHaveBeenCalledWith(
-            expect.stringContaining("MockLayer")
-        );
+    it("should throw DuplicateLayerError when pushing an overlay already in the stack", () => {
+        expect(() => {
+            layerStack.PushOverlay(overlay);
+        }).toThrow(DuplicateLayerError);
+    });
+
+    it("should throw LayerNotFoundError when PopLayer is called with a layer not in the stack", () => {
+        const unknownLayer = new MockLayer("unknown");
+        expect(() => layerStack.PopLayer(unknownLayer)).toThrow(LayerNotFoundError);
         expect(layerStack.GetLayers()).toHaveLength(3);
+    });
 
-        warnSpy.mockRestore();
+    it("should throw LayerNotFoundError when PopOverlay is called with an overlay not in the stack", () => {
+        const unknownOverlay = new MockLayer("unknown");
+        expect(() => layerStack.PopOverlay(unknownOverlay)).toThrow(LayerNotFoundError);
+        expect(layerStack.GetLayers()).toHaveLength(3);
     });
 
     it("should continue OnUpdate for all layers even if one throws", () => {
