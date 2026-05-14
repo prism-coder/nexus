@@ -78,3 +78,42 @@ export class InvalidArgumentError extends NexusError {
         super(message);
     }
 }
+
+/**
+ * Thrown when a `Layer` that is already present in the `LayerStack` is pushed again.
+ * 
+ * @export
+ * @class DuplicateLayerError
+ * @extends {NexusError}
+ */
+export class DuplicateLayerError extends NexusError {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+/**
+ * Thrown when an operation targets a `Layer` that is not present in the `LayerStack`.
+ * 
+ * @export
+ * @class LayerNotFoundError
+ * @extends {NexusError}
+ */
+export class LayerNotFoundError extends NexusError {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+/**
+ * Thrown when one or more `Service` instances fail during the shutdown sequence.
+ * 
+ * @export
+ * @class ServiceShutdownError
+ * @extends {NexusError}
+ */
+export class ServiceShutdownError extends NexusError {
+    constructor(message: string) {
+        super(message);
+    }
+}
