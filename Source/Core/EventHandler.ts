@@ -1,5 +1,6 @@
-import { Event } from "./Event";
+import { Event, EventCategory } from "./Event";
 import { Log } from "./Log";
+import { InvalidArgumentError } from "./Errors";
 
 /**
  * A helper class to handle events to dedicated handler functions
@@ -66,9 +67,30 @@ export class EventHandler {
      * Creates an instance of `EventHandler`.
      *
      * @param {Event} event The `Event` to be handled.
+     * @throws {InvalidArgumentError} If `event` is null or undefined.
+     * @throws {InvalidArgumentError} If `event.Category` is null, undefined, or an invalid EventCategory.
+     * @throws {InvalidArgumentError} If `event.Type` is null, undefined, or an empty string.
      * @memberof EventHandler
      */
     constructor(event: Event) {
+        if (!event) {
+            throw new InvalidArgumentError(
+                "EventHandler::constructor - 'event' must not be null or undefined."
+            );
+        }
+
+        if (!event.Category || !(event.Category in EventCategory)) {
+            throw new InvalidArgumentError(
+                "EventHandler::constructor - 'event.Category' must be a valid EventCategory."
+            );
+        }
+
+        if (!event.Type || !event.Type.trim()) {
+            throw new InvalidArgumentError(
+                "EventHandler::constructor - 'event.Type' must be a non-empty string."
+            );
+        }
+
         this.event = event;
     }
 
@@ -81,12 +103,26 @@ export class EventHandler {
      * @param {(event: T) => Promise<boolean> | boolean} handler The function to call if the type matches.
      * Should return `true` to consume the event.
      * @returns {Promise<void>}
+     * @throws {InvalidArgumentError} If `type` is null, undefined, or an empty string.
+     * @throws {InvalidArgumentError} If `handler` is null or undefined.
      * @memberof EventHandler
      */
     public async Handle<T extends Event>(
         type: string,
         handler: (event: T) => Promise<boolean> | boolean
     ): Promise<void> {
+        if (!type || !type.trim()) {
+            throw new InvalidArgumentError(
+                "EventHandler::Handle - 'type' must be a non-empty string."
+            );
+        }
+
+        if (!handler) {
+            throw new InvalidArgumentError(
+                "EventHandler::Handle - 'handler' must not be null or undefined."
+            );
+        }
+
         // If the Event is already consumed or types don't match, do nothing.
         if (this.event.Consumed() || this.event.Type !== type) {
             return;

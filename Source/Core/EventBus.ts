@@ -1,6 +1,6 @@
 import { Event } from "./Event";
 import { Log } from "./Log";
-import { NotInitializedError } from "./Errors";
+import { AlreadyInitializedError, InvalidArgumentError, NotInitializedError } from "./Errors";
 
 // Define a type for the emit function that will be provided by the Application.
 type EventEmitFunction = (event: Event) => void;
@@ -46,9 +46,24 @@ export class EventBus {
      * @static
      * @param {EventEmitFunction} emitFn The Application's internal `EmitEvent` function.
      * @internal
+     * @throws {InvalidArgumentError} If `emitFn` is null or undefined.
+     * @throws {AlreadyInitializedError} If the `EventBus` has already been initialized.
      * @memberof EventBus
      */
     public static Initialize(emitFn: EventEmitFunction): void {
+        if (!emitFn) {
+            throw new InvalidArgumentError(
+                "EventBus::Initialize - 'emitFn' must not be null or undefined."
+            );
+        }
+
+        if (this.emitFunction) {
+            throw new AlreadyInitializedError(
+                "EventBus::Initialize - EventBus has already been initialized! "
+                + "Did you call 'EventBus.Initialize()' more than once?"
+            );
+        }
+
         Log.Info("EventBus::Initialize - Initializing the EventBus");
 
         this.emitFunction = emitFn;
@@ -60,7 +75,7 @@ export class EventBus {
      * @static
      * @param {Event} event The `Event` to emit.
      * @returns {void}
-     * @throws {Error} If `EventBus` hasn't been initialized.
+     * @throws {NotInitializedError} If `EventBus` hasn't been initialized.
      * @memberof EventBus
      */
     public static Emit(event: Event): void {
