@@ -70,7 +70,7 @@ export abstract class Layer {
      * Method that fires every time the Application loop runs.
      * Used for Layer-specific logic.
      *
-     * @abstract(
+     * @abstract
      * @param {number} ts The Timestep or Delta Time (in milliseconds).
      * @memberof Layer
      */

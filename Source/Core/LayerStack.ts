@@ -1,7 +1,7 @@
 import { Event } from "./Event";
 import { Layer } from "./Layer";
 import { Log } from "./Log";
-import { InvalidArgumentError } from "./Errors";
+import { DuplicateLayerError, InvalidArgumentError, LayerNotFoundError } from "./Errors";
 
 /**
  * Manages the stack of layers for the `Application`.
@@ -57,12 +57,20 @@ export class LayerStack {
      * Regular layers are inserted before overlays.
      *
      * @param {Layer} layer The `Layer` to push.
+     * @throws {InvalidArgumentError} If `layer` is null or undefined.
+     * @throws {DuplicateLayerError} If the `Layer` is already in the stack.
      * @memberof LayerStack
      */
     public PushLayer(layer: Layer): void {
         if (!layer) {
             throw new InvalidArgumentError(
                 "LayerStack::PushLayer - 'layer' must not be null or undefined."
+            );
+        }
+
+        if (this.layers.indexOf(layer) !== -1) {
+            throw new DuplicateLayerError(
+                `LayerStack::PushLayer - Layer '${layer.constructor.name}' is already in the stack.`
             );
         }
 
@@ -80,12 +88,20 @@ export class LayerStack {
      * Overlays are always "on top" of regular layers.
      *
      * @param {Layer} overlay The overlay to push.
+     * @throws {InvalidArgumentError} If `overlay` is null or undefined.
+     * @throws {DuplicateLayerError} If the `Overlay` is already in the stack.
      * @memberof LayerStack
      */
     public PushOverlay(overlay: Layer): void {
         if (!overlay) {
             throw new InvalidArgumentError(
                 "LayerStack::PushOverlay - 'overlay' must not be null or undefined."
+            );
+        }
+
+        if (this.layers.indexOf(overlay) !== -1) {
+            throw new DuplicateLayerError(
+                `LayerStack::PushOverlay - Overlay '${overlay.constructor.name}' is already in the stack.`
             );
         }
 
@@ -101,9 +117,17 @@ export class LayerStack {
      * Pops a regular `Layer` from the stack.
      *
      * @param {Layer} layer The `Layer` to pop.
+     * @throws {InvalidArgumentError} If `layer` is null or undefined.
+     * @throws {LayerNotFoundError} If the `Layer` is not found in the stack or is an overlay.
      * @memberof LayerStack
      */
     public PopLayer(layer: Layer): void {
+        if (!layer) {
+            throw new InvalidArgumentError(
+                "LayerStack::PopLayer - 'layer' must not be null or undefined."
+            );
+        }
+
         const index = this.layers.indexOf(layer);
 
         // Ensure layer exists and is a regular layer (before the overlay index).
@@ -115,7 +139,7 @@ export class LayerStack {
             this.layers.splice(index, 1);
             this.layerInsertIndex--; // Decrement the insert index.
         } else {
-            Log.Warning(
+            throw new LayerNotFoundError(
                 `LayerStack::PopLayer - Layer '${layer.constructor.name}' was not found in the stack.`
             );
         }
@@ -125,9 +149,17 @@ export class LayerStack {
      * Pops an Overlay from the stack.
      *
      * @param {Layer} overlay The overlay to pop.
+     * @throws {InvalidArgumentError} If `overlay` is null or undefined.
+     * @throws {LayerNotFoundError} If the `Overlay` is not found in the stack.
      * @memberof LayerStack
      */
     public PopOverlay(overlay: Layer): void {
+        if (!overlay) {
+            throw new InvalidArgumentError(
+                "LayerStack::PopOverlay - 'overlay' must not be null or undefined."
+            );
+        }
+
         const index = this.layers.indexOf(overlay);
 
         // Ensure layer exists and is an overlay (at or after the overlay index).
@@ -138,7 +170,7 @@ export class LayerStack {
 
             this.layers.splice(index, 1);
         } else {
-            Log.Warning(
+            throw new LayerNotFoundError(
                 `LayerStack::PopOverlay - Overlay '${overlay.constructor.name}' was not found in the stack.`
             );
         }
