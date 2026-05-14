@@ -114,6 +114,7 @@ export class Application {
      * Creates an instance of `Application`.
      *
      * @param {ApplicationSpecification} specification The `ApplicationSpecification`.
+     * @throws {InvalidArgumentError} If the `Name` in the specification is null, undefined, or empty.
      * @memberof Application
      */
     constructor(specification: ApplicationSpecification) {
@@ -371,8 +372,6 @@ export class Application {
      */
     private async Shutdown(): Promise<void> {
         Log.Info("Application::Shutdown - Shutting down the Application");
-
-        let layerStackSuccess: boolean;
 
         // Shut down all services first.
         try {
