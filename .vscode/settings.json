@@ -6,6 +6,8 @@
         "Layers",
         "Events",
         "Application",
-        "Tests"
+        "Tests",
+        "Errors",
+        "Documentation",
     ]
 }
