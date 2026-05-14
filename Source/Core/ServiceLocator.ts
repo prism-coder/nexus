@@ -1,11 +1,15 @@
 import { ServiceContainer, ServiceIdentifier } from "./ServiceContainer";
 import { Service } from "./Service";
-import { Log } from "./Log";
-import { AlreadyInitializedError, NotInitializedError } from "./Errors";
+import {
+    AlreadyInitializedError,
+    InvalidArgumentError,
+    NotInitializedError,
+    ServiceNotFoundError,
+} from "./Errors";
 
 /**
  * A static `ServiceLocator` pattern implementation.
- * 
+ *
  * It holds the single `ServiceContainer` instance for
  * the entire application, allowing any part of the app
  * to retrieve services without "prop drilling".
@@ -29,7 +33,7 @@ import { AlreadyInitializedError, NotInitializedError } from "./Errors";
  *         const port = this.config.GetPort();
  *         Log.Info(`MyLayer attached, port is ${port}`);
  *     }
- * 
+ *
  *     // ...
  * }
  * ```
@@ -52,14 +56,21 @@ export class ServiceLocator {
      * @static
      * @param {ServiceContainer} container The `ServiceContainer` instance.
      * @internal
-     * @throws {Error} If the `ServiceLocator` has already been initialized.
+     * @throws {InvalidArgumentError} If the `container` is null or undefined.
+     * @throws {AlreadyInitializedError} If the `ServiceLocator` has already been initialized.
      * @memberof ServiceLocator
      */
     public static Initialize(container: ServiceContainer): void {
+        if (!container) {
+            throw new InvalidArgumentError(
+                "ServiceLocator::Initialize - 'container' must not be null or undefined.",
+            );
+        }
+
         if (this.container) {
             throw new AlreadyInitializedError(
                 "ServiceLocator::Initialize - ServiceLocator has already been initialized! " +
-                "Did you call 'ServiceLocator.Initialize()' more than once?"
+                    "Did you call 'ServiceLocator.Initialize()' more than once?",
             );
         }
 
@@ -72,16 +83,16 @@ export class ServiceLocator {
      * @template T
      * @param {ServiceIdentifier<T>} identifier The `Service` class.
      * @returns {T} The requested `Service` instance.
-     * @throws {Error} If the `ServiceLocator` hasn't been initialized.
-     * @throws {Error} If the `Service` is not found in the container.
-     * @throws {Error} If the `Service` hasn't been initialized.
+     * @throws {NotInitializedError} If the `ServiceLocator` hasn't been initialized.
+     * @throws {ServiceNotFoundError} If the `Service` is not found in the container.
+     * @throws {NotInitializedError} If the `Service` hasn't been initialized.
      * @memberof ServiceLocator
      */
     public static Get<T extends Service>(identifier: ServiceIdentifier<T>): T {
         if (!this.container) {
             throw new NotInitializedError(
                 "ServiceLocator::Get - ServiceLocator has not been initialized! " +
-                "Did you forget to call 'ServiceLocator.Initialize()'?"
+                    "Did you forget to call 'ServiceLocator.Initialize()'?",
             );
         }
 
@@ -92,10 +103,10 @@ export class ServiceLocator {
         if (!service.IsInitialized()) {
             throw new NotInitializedError(
                 `ServiceLocator::Get - An attempt was made to retrieve the service '${identifier.name}' before it was initialized. ` +
-                `Did you forget to call 'app.InitializeServices()' in your main.ts file?`
+                    `Did you forget to call 'app.InitializeServices()' in your main.ts file?`,
             );
         }
-        
+
         return service;
     }
 }
